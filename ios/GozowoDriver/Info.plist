@@ -35,6 +35,20 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<!-- When app is in use -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show your current position</string>
+
+	<!-- Always access (in background as well) -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location even when the app is in the background</string>
+
+	<!-- Optional: For iOS 11+ to allow access to precise location -->
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>LocationUsage</key>
+		<string>We need your precise location to provide better services</string>
+	</dict>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

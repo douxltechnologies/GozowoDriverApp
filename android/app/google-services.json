@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "994749262040",
+    "project_id": "gozowodriver",
+    "storage_bucket": "gozowodriver.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994749262040:android:c14a12689564f7c3ab8fad",
+        "android_client_info": {
+          "package_name": "com.gozowodriver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3_UOUP6UAyRZBlwp0_RGR1AGYWx4Bm5Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,16 @@
+export const COLOR={
+    blue:'#001871',
+    fadeBlue:'#0018711A',
+    green:'#60D669',
+    darkGreen:'#009E49',
+    fadeGreen:'#009E491A',
+    red:'rgba(213, 0, 50, 1)',
+    fadeRed:'#F4DEE3',
+    white:'#FFF',
+    fadeWhite:'#F7F7F7',
+    grey:'#AAA',
+    fadeGrey:'#EDEDED',
+    black:'#010101',
+    yellow:'#FFD700',
+    whiteOpacity:'rgba(255, 255, 255, 0.10)',
+}
