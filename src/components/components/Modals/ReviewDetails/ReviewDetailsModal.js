@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -15,8 +15,25 @@ import useResponsiveSize from '../../../../utils/useResponsiveSize';
 import Close from '../../../../assets/icons/close-circle.svg';
 import { WEIGHT } from '../../../../utils/weight';
 import { button, fontSize, spacing } from '../../../../utils/scaling';
+import StarRating from 'react-native-star-rating-widget';
+import { useGetRatingScenerios } from '../../../../api/useGetRatingScenerios';
+import { useSelector } from 'react-redux';
+import { useSaveRating } from '../../../../api/useSaveRating';
 
-const ReviewDetailsModal = ({ setShowReview, showReview, navigation }) => {
+const ReviewDetailsModal = ({ setShowReview, details, showReview, navigation }) => {
+  const [ratings, setRatings] = useState({});
+  const PROFILE = useSelector((state) => state?.user);
+  const [comment,setComment]=useState(null);
+  const { getRatings, error, loading } = useGetRatingScenerios();
+  const {
+    saveRating,
+    error: errorRating,
+    loading: loadingRating,
+  } = useSaveRating();
+  const [ratingData, setRatingData] = useState(null);
+  const TOKEN = useSelector(state => state?.token);
+  
+
   // const { hp, wp, fp } = useResponsiveSize(440, 956);
   // const sheetRef = useRef(null);
   // useEffect(() => {
@@ -26,6 +43,39 @@ const ReviewDetailsModal = ({ setShowReview, showReview, navigation }) => {
   //   }, 1000);
   //   }
   // }, [showReview]);
+  const getRatingScenerios = async () => {
+    await getRatings(TOKEN).then(result => {
+      if (result?.status) {
+        setRatingData(result?.result);
+      }
+    });
+  };
+  useEffect(() => {
+    getRatingScenerios();
+  }, [TOKEN]);
+  const convertRatingsToArray = () => {
+    const ratingsArray = Object.entries(ratings).map(
+      ([ratingScenarioId, ratingScore]) => ({
+        ratingScenarioId,
+        ratingScore,
+      }),
+    );
+    return ratingsArray;
+  };
+  console.log('All details of the jobL:::::::::::::::::::::::::',details);
+  const giveRating=async (ratingDetail)=>{
+    await saveRating(TOKEN,{
+      jobId:details?.data?.jobId,
+      raterId:PROFILE?.id,
+      rateeId:details?.data?.customer?.Id,
+      comment:comment,
+      ratingDetails:ratingDetail
+    }).then((result)=>{
+      if(result?.success){
+        navigation?.navigate('Home');
+      }
+    })
+  }
   return (
     <Modal
       visible={showReview}
@@ -70,6 +120,7 @@ const ReviewDetailsModal = ({ setShowReview, showReview, navigation }) => {
             >
               How was your driver?
             </Text>
+
             <View
               style={{
                 display: 'flex',
@@ -85,50 +136,37 @@ const ReviewDetailsModal = ({ setShowReview, showReview, navigation }) => {
                 }}
                 source={require('../../../../assets/Images/logo/place-holder.jpg')}
               ></Image>
-              <View
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: spacing.hp34,
-                  width: '100%',
-                  paddingHorizontal: Dimensions.get('window').width * 0.09,
-                }}
-              >
-                <Text>Safety</Text>
-                <ReviewStars></ReviewStars>
-              </View>
-              <View
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: spacing.hp34,
-                  width: '100%',
-                  paddingHorizontal: Dimensions.get('window').width * 0.09,
-                }}
-              >
-                <Text>Communication</Text>
-                <ReviewStars></ReviewStars>
-              </View>
-              <View
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: spacing.hp34,
-                  width: '100%',
-                  paddingHorizontal: Dimensions.get('window').width * 0.09,
-                }}
-              >
-                <Text>Punctuality</Text>
-                <ReviewStars></ReviewStars>
-              </View>
+              {ratingData?.map(item => {
+                return (
+                  <View
+                    key={item.id}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: spacing.hp34,
+                      width: '100%',
+                      paddingHorizontal: Dimensions.get('window').width * 0.09,
+                    }}
+                  >
+                    <Text>{item?.name}</Text>
+
+                    <StarRating
+                      rating={ratings[item.id] || 0}
+                      onChange={value => {
+                        setRatings(prev => ({
+                          ...prev,
+                          [item.id]: value,
+                        }));
+                      }}
+                    />
+                  </View>
+                );
+              })}
             </View>
+
             <TextInput
+              onChangeText={(comment)=>{setComment(comment)}}
               textAlignVertical="top"
               style={{
                 marginTop: spacing.hp34,
@@ -157,7 +195,9 @@ const ReviewDetailsModal = ({ setShowReview, showReview, navigation }) => {
           >
             <TouchableOpacity
               onPress={() => {
-                navigation?.navigate('Home');
+                // navigation?.navigate('Home');
+                const ratingsArray = convertRatingsToArray();
+                giveRating(ratingsArray);
               }}
               style={{
                 backgroundColor: COLOR.blue,

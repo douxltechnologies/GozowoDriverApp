@@ -33,18 +33,20 @@ const ReasonModal = ({
     'Complaint about passenger',
     'Other',
   ];
-  const cancel = async ({ reason }: any) => {
-    await cancelDriverRequest(TOKEN, {
-      jobId: item?.data?.jobId,
-      reason: reason,
-      isCancelled: true,
-    }).then(result => {
-      if (result?.success) {
-        dispatch(setBids([]));
-        setShowOther(false);
-        navigation?.goBack();
-      }
-    });
+  const cancel = async (reason:any) => {
+    if(reason!=null || reason?.length!=0 || reason!=''){
+      await cancelDriverRequest(TOKEN, {
+        jobId: item?.data?.jobId,
+        reason: reason,
+        isCancelled: true,
+      }).then(result => {
+        if (result?.success) {
+          dispatch(setBids([]));
+          setShowOther(false);
+          navigation?.goBack();
+        }
+      });
+    }
   };
   return (
     <>
@@ -183,12 +185,14 @@ const ReasonModal = ({
             </Text>
             <View style={{ justifyContent: 'flex-end', flex: 1 }}>
               {reasons?.map((item, index) => {
+                
                 return (
                   <TouchableOpacity
                     onPress={() => {
                       if (index == 3) {
                         setShowOther(true);
                       } else {
+                        console.log('::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::',item);
                         setShowOther(false);
                         cancel(item);
                       }

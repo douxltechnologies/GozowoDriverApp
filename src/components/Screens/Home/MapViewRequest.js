@@ -267,6 +267,7 @@ const MapViewRequest = ({ route, navigation }) => {
           type: 'JOB_FINISHED',
           jobId: item?.data?.jobId,
           userId: item?.data?.customer?.Id,
+          driverId:PROFILE?.id
         }),
       );
     };
@@ -351,6 +352,7 @@ const MapViewRequest = ({ route, navigation }) => {
       <ReviewDetailsModal
       setShowReview={setShowReview}
         showReview={showReview}
+        details={item}
         navigation={navigation}
       ></ReviewDetailsModal>
       <ReasonModal

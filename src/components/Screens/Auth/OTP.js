@@ -16,6 +16,7 @@ import { ActivityIndicator } from 'react-native-paper';
 import AlertModal from '../../components/Modals/AlertModal/AlertModal';
 import { useGetProfile } from '../../../api/useGetProfile';
 import { useVerifyEmailOTP } from '../../../api/useVerifyEmailOTP';
+import messaging from '@react-native-firebase/messaging';
 
 const OTP = ({ navigation, route }) => {
   const dispatch = useDispatch();
@@ -33,6 +34,7 @@ const OTP = ({ navigation, route }) => {
   const [message, setMessage] = useState('Something went wrong!');
   const [modalType, setModalType] = useState(null);
   const TOKEN = useSelector(state => state?.token);
+  const [fcmToken,setFcmToken]=useState(null);
 
   const {
     getProfileDetails,
@@ -71,9 +73,10 @@ const OTP = ({ navigation, route }) => {
 
     // You can pass additional param like isEmailVerification if API supports it
     await verifyOTP(
-      '8C518CDB-8FEF-F011-887F-000C29F6C24F',
+      'D0A34A4C-89B5-F011-887C-000C29F6C24F',
       otp,
       deviceId,
+      fcmToken,
       rememberMe,
     ).then(async result => {
       if (result?.status === true) {
@@ -148,7 +151,18 @@ const OTP = ({ navigation, route }) => {
       setShowAlertModal(true);
     }
   }, [errorEmailOTP]);
+  async function getFcmToken() {
+    // Request permission (required for iOS, optional for Android)
+    await messaging().requestPermission();
 
+    const token = await messaging().getToken();
+    console.log('FCM Token:', token);
+
+    setFcmToken(token);
+  }
+  useEffect(() => {
+    getFcmToken();
+  }, [TOKEN]);
   return (
     <>
       <AlertModal

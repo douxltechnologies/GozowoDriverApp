@@ -11,6 +11,7 @@ export const useVerifyOTP = () => {
     code: string,
     otp: number,
     deviceId: string,
+    deviceToken:string,
     rememberMe: boolean,
   ) => {
     setLoading(true);
@@ -23,6 +24,7 @@ export const useVerifyOTP = () => {
           code,
           otp,
           deviceId,
+          deviceToken,
           rememberMe,
         },
         {

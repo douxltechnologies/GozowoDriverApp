@@ -6,24 +6,12 @@ import AuthStack from './src/components/Stack/AuthStack/AuthStack';
 import { Provider as ReduxProvider } from 'react-redux';
 import store from './src/store/store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import messaging from '@react-native-firebase/messaging';
 
 const App = () => {
   useEffect(() => {
     requestLocationPermission();
   }, []);
-  async function getFcmToken() {
-    // Request permission (required for iOS, optional for Android)
-    await messaging().requestPermission();
 
-    const token = await messaging().getToken();
-    console.log('FCM Token:', token);
-
-    return token;
-  }
-  useEffect(() => {
-    getFcmToken();
-  }, []);
   // 🔐 Request location permission (Android + iOS)
   const requestLocationPermission = async () => {
     try {
