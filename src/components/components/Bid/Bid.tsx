@@ -110,6 +110,7 @@ const Bid = ({ navigation, formatTime, item }: any) => {
   const boxRef = useRef(null);
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
+  console.log('I got it:::::',item);
   return (
     <>
       <MediaModal
@@ -218,7 +219,7 @@ const Bid = ({ navigation, formatTime, item }: any) => {
                     color: COLOR.black,
                   }}
                 >
-                  {item?.data?.customer?.rating} (289)
+                  {item?.data?.customer?.rating} ({item?.data?.customer?.totalRaters})
                 </Text>
               </View>
               <Text

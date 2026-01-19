@@ -10,6 +10,8 @@
 	<string>GozowoDriver</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -33,22 +35,21 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
-	<!-- When app is in use -->
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to show your current position</string>
-
-	<!-- Always access (in background as well) -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to your camera to allow users to take photos within the app.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location even when the app is in the background</string>
-
-	<!-- Optional: For iOS 11+ to allow access to precise location -->
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>LocationUsage</key>
 		<string>We need your precise location to provide better services</string>
 	</dict>
+	 <key>NSMicrophoneUsageDescription</key>
+    <string>We need access to the microphone to allow you to record audio for your orders and communicate with customers.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show your current position</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires access to your photo library to allow users to upload photos to their profile.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

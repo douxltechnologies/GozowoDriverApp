@@ -1,4 +1,4 @@
-import { Dimensions, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Platform, Text, TouchableOpacity, View } from 'react-native';
 import styles from '../../../styles';
 import { OtpInput } from 'react-native-otp-entry';
 import { COLOR } from '../../../utils/color';
@@ -151,15 +151,22 @@ const OTP = ({ navigation, route }) => {
       setShowAlertModal(true);
     }
   }, [errorEmailOTP]);
-  async function getFcmToken() {
-    // Request permission (required for iOS, optional for Android)
-    await messaging().requestPermission();
+async function getFcmToken() {
+  if (Platform.OS === 'ios') {
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-    const token = await messaging().getToken();
-    console.log('FCM Token:', token);
-
-    setFcmToken(token);
+    if (!enabled) return;
   }
+
+  await messaging().registerDeviceForRemoteMessages();
+
+  const token = await messaging().getToken();
+  console.log('FCM Token:', token);
+  setFcmToken(token);
+}
   useEffect(() => {
     getFcmToken();
   }, [TOKEN]);
