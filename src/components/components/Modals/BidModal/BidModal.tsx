@@ -421,7 +421,7 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
                       <View>
                         {item?.data?.stops.length != 0 ? (
                           <>
-                            <View style={{ width: width * 0.8 }}>
+                            <View style={{ width: width * 0.6 }}>
                               <Text style={{ fontSize: fontSize.font14 }}>
                                 {item?.data?.pickup?.address}
                               </Text>
@@ -431,7 +431,7 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
                               return (
                                 <View
                                   style={{
-                                    width: width * 0.8,
+                                    width: width * 0.6,
                                     marginTop: spacing.hp21,
                                   }}
                                 >
@@ -443,7 +443,7 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
                             })}
                             <View
                               style={{
-                                width: width * 0.8,
+                                width: width * 0.6,
                                 marginTop: spacing.hp21,
                               }}
                             >
@@ -454,14 +454,14 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
                           </>
                         ) : (
                           <>
-                            <View style={{ width: width * 0.8 }}>
+                            <View style={{ width: width * 0.6 }}>
                               <Text style={{ fontSize: fontSize.font14 }}>
                                 {item?.data?.pickup?.address}
                               </Text>
                             </View>
                             <View
                               style={{
-                                width: width * 0.8,
+                                width: width * 0.6,
                                 marginTop: spacing.hp21,
                               }}
                             >

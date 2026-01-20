@@ -85,7 +85,8 @@ function MyTabBar({ state, descriptors, navigation }: any) {
             onLongPress={onLongPress}
             style={{
               flex: 1,
-              paddingHorizontal: spacing?.wp15,
+              paddingHorizontal: spacing?.wp10,
+              paddingVertical:spacing?.hp6,
               alignItems: 'center',
             }}
           >

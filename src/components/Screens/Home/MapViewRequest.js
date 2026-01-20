@@ -25,8 +25,8 @@ import { ENDPOINT } from '../../../utils/urls';
 import ReasonModal from '../../components/Modals/ReasonModal/ReasonModal';
 import ReviewDetailsModal from '../../components/Modals/ReviewDetails/ReviewDetailsModal';
 import { useCompleteRide } from '../../../api/useCompleteRide';
+import { GOOGLE_API_KEY } from '../../../utils/keys';
 
-const GOOGLE_API_KEY = 'AIzaSyB7cmDikW75oI2AiA5b1qDyQUoxcq3XtOs';
 const { height, width } = Dimensions.get('window');
 
 const MapViewRequest = ({ route, navigation }) => {
@@ -48,8 +48,8 @@ const MapViewRequest = ({ route, navigation }) => {
 
   const fallbackRegion = pickup
     ? {
-        latitude: pickup.latitude,
-        longitude: pickup.longitude,
+        latitude: pickup?.latitude,
+        longitude: pickup?.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       }
@@ -98,7 +98,7 @@ const MapViewRequest = ({ route, navigation }) => {
       if (result?.success) {
         setShowReview(true);
         finishJob();
-        dispatch(setBids([]))
+        dispatch(setBids([]));
       }
     });
   };
@@ -267,7 +267,7 @@ const MapViewRequest = ({ route, navigation }) => {
           type: 'JOB_FINISHED',
           jobId: item?.data?.jobId,
           userId: item?.data?.customer?.Id,
-          driverId:PROFILE?.id
+          driverId: PROFILE?.id,
         }),
       );
     };
@@ -275,63 +275,63 @@ const MapViewRequest = ({ route, navigation }) => {
     socket.onerror = e => console.log('WebSocket error', e);
   };
   // WebSocket to send location updates
-  useEffect(() => {
-    const connectWebSocket = async () => {
-      const granted = await requestPermission();
-      if (!granted) return;
-      socket = new WebSocket(
-        `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
-      );
-      socketRef.current = socket;
-      socket.onopen = () => {
-        wsWatchId = Geolocation.watchPosition(
-          position => {
-            if (socket?.readyState === WebSocket.OPEN) {
-              socket.send(
-                JSON.stringify({
-                  type: 'LOCATION_UPDATE',
-                  latitude: position.coords.latitude,
-                  longitude: position.coords.longitude,
-                  accuracy: position.coords.accuracy,
-                  speed: position.coords.speed,
-                  timestamp: Date.now(),
-                }),
-              );
-            }
-          },
-          error => console.log('Location error:', error),
-          {
-            enableHighAccuracy: true,
-            distanceFilter: 10,
-            interval: 15000,
-            fastestInterval: 10000,
-          },
-        );
-      };
+  // useEffect(() => {
+  //   const connectWebSocket = async () => {
+  //     const granted = await requestPermission();
+  //     if (!granted) return;
+  //     socket = new WebSocket(
+  //       `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
+  //     );
+  //     socketRef.current = socket;
+  //     socket.onopen = () => {
+  //       wsWatchId = Geolocation.watchPosition(
+  //         position => {
+  //           if (socket?.readyState === WebSocket.OPEN) {
+  //             socket.send(
+  //               JSON.stringify({
+  //                 type: 'LOCATION_UPDATE',
+  //                 latitude: position.coords.latitude,
+  //                 longitude: position.coords.longitude,
+  //                 accuracy: position.coords.accuracy,
+  //                 speed: position.coords.speed,
+  //                 timestamp: Date.now(),
+  //               }),
+  //             );
+  //           }
+  //         },
+  //         error => console.log('Location error:', error),
+  //         {
+  //           enableHighAccuracy: true,
+  //           distanceFilter: 10,
+  //           interval: 15000,
+  //           fastestInterval: 10000,
+  //         },
+  //       );
+  //     };
 
-      socket.onmessage = event => {
-        const message = JSON.parse(event.data);
-        console.log('HI I am CANCEL', message);
-        if (message.type === 'RIDE_CANCELLED_BY_CUSTOMER') {
-          dispatch(setBids([]));
-          navigation.navigate('HomeStack');
-        }
-      };
+  //     socket.onmessage = event => {
+  //       const message = JSON.parse(event.data);
+  //       console.log('HI I am CANCEL', message);
+  //       if (message.type === 'RIDE_CANCELLED_BY_CUSTOMER') {
+  //         dispatch(setBids([]));
+  //         navigation.navigate('HomeStack');
+  //       }
+  //     };
 
-      socket.onclose = () => console.log('WebSocket closed');
-      socket.onerror = e => console.log('WebSocket error', e);
-    };
+  //     socket.onclose = () => console.log('WebSocket closed');
+  //     socket.onerror = e => console.log('WebSocket error', e);
+  //   };
 
-    connectWebSocket();
+  //   connectWebSocket();
 
-    return () => {
-      if (wsWatchId !== null) Geolocation.clearWatch(wsWatchId);
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
-      }
-    };
-  }, []);
+  //   return () => {
+  //     if (wsWatchId !== null) Geolocation.clearWatch(wsWatchId);
+  //     if (socketRef.current) {
+  //       socketRef.current.close();
+  //       socketRef.current = null;
+  //     }
+  //   };
+  // }, []);
   useEffect(() => {
     if (BIDS?.type == 'RIDE_CANCELLED_BY_CUSTOMER') {
       dispatch(setBids([]));
@@ -350,7 +350,7 @@ const MapViewRequest = ({ route, navigation }) => {
   return (
     <>
       <ReviewDetailsModal
-      setShowReview={setShowReview}
+        setShowReview={setShowReview}
         showReview={showReview}
         details={item}
         navigation={navigation}
@@ -375,9 +375,10 @@ const MapViewRequest = ({ route, navigation }) => {
           >
             {directionsOrigin && pickup && rideStep === 0 && (
               <>
+                {console.log('This is my Driver',pickup.latitude)}
                 <MapViewDirections
-                  origin={directionsOrigin}
-                  destination={pickup}
+                  origin={{longitude:directionsOrigin?.longitude,latitude:directionsOrigin?.latitude}}
+                  destination={{longitude:pickup?.longitude,latitude:pickup?.latitude}}
                   apikey={GOOGLE_API_KEY}
                   strokeWidth={5}
                   strokeColor={COLOR.blue}
@@ -470,9 +471,12 @@ const MapViewRequest = ({ route, navigation }) => {
                   })()
                 ) : (
                   // 🔵 NO STOPS → DIRECT ROUTE
+                  // {console.console.log('====================================');
+                  console.log('This is my Driver::::::::::::::::',dropoff),
+                  // console.log('====================================');}
                   <MapViewDirections
-                    origin={origin}
-                    destination={dropoff}
+                    origin={{longitude:origin.longitude,latitude:origin.latitude}}
+                    destination={{longitude:dropoff?.longitude,latitude:dropoff?.latitude}}
                     apikey={GOOGLE_API_KEY}
                     strokeWidth={5}
                     strokeColor={COLOR.blue}
