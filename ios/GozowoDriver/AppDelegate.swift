@@ -30,7 +30,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       in: window,
       launchOptions: launchOptions
     )
-    GMSServices.provideAPIKey("AIzaSyB7cmDikW75oI2AiA5b1qDyQUoxcq3XtOs");
+    GMSServices.provideAPIKey("AIzaSyD3GIvOoaay2MAbh6ySRxGFai9UIpQKzLw");
     return true
   }
 }

@@ -26,7 +26,11 @@ import ReasonModal from '../../components/Modals/ReasonModal/ReasonModal';
 import ReviewDetailsModal from '../../components/Modals/ReviewDetails/ReviewDetailsModal';
 import { useCompleteRide } from '../../../api/useCompleteRide';
 import { GOOGLE_API_KEY } from '../../../utils/keys';
-
+import { useCallConnectionInfo } from '../../../api/useCallConnectionInfo';
+import SignalRService from '../../../service/SignalRService';
+import RNCallKeep from 'react-native-callkeep';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 const { height, width } = Dimensions.get('window');
 
 const MapViewRequest = ({ route, navigation }) => {
@@ -45,7 +49,12 @@ const MapViewRequest = ({ route, navigation }) => {
   const { completeRide, loading, error } = useCompleteRide();
   const pickup = route?.params?.bidDetails?.data?.pickup;
   const dropoff = route?.params?.bidDetails?.data?.dropoff;
-
+  const { getCallConnection } = useCallConnectionInfo();
+  const [callData, setCallData] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const callUUID = uuidv4();
+  const [callConnected, setCallConnected] = useState(false);
+  const callConnectedRef = useRef(callConnected);
   const fallbackRegion = pickup
     ? {
         latitude: pickup?.latitude,
@@ -335,18 +344,172 @@ const MapViewRequest = ({ route, navigation }) => {
   useEffect(() => {
     if (BIDS?.type == 'RIDE_CANCELLED_BY_CUSTOMER') {
       dispatch(setBids([]));
-      navigation.goBack();
+      navigation.navigate('Home');
     }
     if (BIDS?.type == 'RIDE_REQUEST_CANCELLED') {
       dispatch(setBids([]));
-      navigation?.goBack();
+      navigation.navigate('Home');
     }
   }, [BIDS]);
-  console.log('THESE ARE BIDS', '::::::::', BIDS);
+  console.log(
+    'THESE ARE BIDS',
+    '::::::::',
+    route?.params?.bidDetails?.data?.customer?.Id,
+  );
+  useEffect(() => {
+    callConnectedRef.current = callConnected;
+  }, [callConnected]);
+  useEffect(() => {
+    const connectCall = async () => {
+      const connectionInfo = await getCallConnection(TOKEN);
+      console.log(
+        'CONNECTION:::::::::::::::::::::',
+        connectionInfo.hubUrl.split(':')[0] +
+          's:' +
+          connectionInfo.hubUrl.split(':')[1],
+      );
+      if (!connectionInfo || !connectionInfo?.hubUrl) return;
+
+      // Ensure hubUrl is always a string
+      const hubUrl =
+        typeof connectionInfo.hubUrl === 'string'
+          ? connectionInfo.hubUrl
+          : connectionInfo.hubUrl.toString();
+
+      // Start the SignalR connection
+      await SignalRService.startConnection(
+        hubUrl.split(':')[0] + 's:' + hubUrl.split(':')[1],
+        TOKEN,
+      );
+      setConnected(true);
+    };
+    connectCall();
+  }, []);
+  const handleConnect = async () => {
+    if (connected) {
+      try {
+        await SignalRService.sendCallSignal(
+          route?.params?.bidDetails?.data?.customer?.Id,
+          {
+            type: 'audio',
+            rideId: 'test-ride-123',
+            timestamp: new Date().toISOString(),
+          },
+        );
+        // Optionally, remove previous listeners (not needed for outgoing only)
+      } catch (err) {
+        console.error('Error connecting to SignalR:', err);
+      }
+    }
+  };
+  const options = {
+    ios: {
+      appName: 'My app name',
+    },
+    android: {
+      alertTitle: 'Permissions required',
+      alertDescription: 'This application needs to access your phone accounts',
+      cancelButton: 'Cancel',
+      okButton: 'ok',
+      imageName: 'phone_account_icon',
+      additionalPermissions: [],
+      // Required to get audio in background when using Android 11
+      foregroundService: {
+        channelId: 'com.company.my',
+        channelName: 'Foreground service for my app',
+        notificationTitle: 'My app is running on background',
+        notificationIcon: 'Path to the resource icon of the notification',
+      },
+    },
+  };
+  useEffect(() => {
+    RNCallKeep.setup(options);
+  }, []);
+  useEffect(() => {
+    const handleAnswerCall = async ({ callUUID }) => {
+      console.log('Call ACCEPTED:', callUUID);
+
+      try {
+        await SignalRService.sendCallStatus(
+          route?.params?.bidDetails?.data?.customer?.Id,
+          'acceptCall',
+          'acceptCall',
+        );
+      } catch (err) {
+        console.error('Error sending acceptCall to SignalR:', err);
+      }
+
+      setCallConnected(true);
+    };
+
+    RNCallKeep.addEventListener('answerCall', handleAnswerCall);
+
+    return () => {
+      RNCallKeep.removeEventListener('answerCall', handleAnswerCall);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleIncomingCall = data => {
+      console.log('Incoming call:', data);
+      setCallData(data);
+    };
+    SignalRService.addCallListener(handleIncomingCall);
+    // Cleanup when component unmounts
+    return () => {
+      SignalRService.removeCallListener(handleIncomingCall);
+    };
+  }, []);
+  useEffect(() => {
+    const handleEndCall = async ({ callUUID }) => {
+      console.log('Call ended or rejected:', callUUID);
+      console.log('Call connected state:', callConnectedRef.current);
+
+      try {
+        if (callConnectedRef.current) {
+          await SignalRService.sendCallStatus(
+            route?.params?.bidDetails?.data?.customer?.Id,
+            'endCall',
+            'endCall',
+          );
+        } else {
+          await SignalRService.sendCallStatus(
+            route?.params?.bidDetails?.data?.customer?.Id,
+            'rejectCall',
+            'rejectCall',
+          );
+        }
+      } catch (err) {
+        console.error('Error sending end/reject call to SignalR:', err);
+      }
+
+      // Cleanup call data
+      setCallData(null);
+      setCallConnected(false);
+    };
+
+    RNCallKeep.addEventListener('endCall', handleEndCall);
+
+    return () => {
+      RNCallKeep.removeEventListener('endCall', handleEndCall);
+    };
+  }, []);
+  useEffect(() => {
+    if (callData != null) {
+      RNCallKeep.displayIncomingCall(
+        callUUID,
+        callData?.phoneNumber || 'Unknown',
+        callData?.callerName || 'Incoming Call',
+        'generic',
+        false,
+      );
+    }
+  }, [callData]);
+
   const hasStops = item?.data?.stops && item.data.stops.length > 0;
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
-  console.log('HIIIIII', item);
+  console.log('HIIIIII This is my Call Data', connected);
   return (
     <>
       <ReviewDetailsModal
@@ -375,10 +538,16 @@ const MapViewRequest = ({ route, navigation }) => {
           >
             {directionsOrigin && pickup && rideStep === 0 && (
               <>
-                {console.log('This is my Driver',pickup.latitude)}
+                {console.log('This is my Driver', pickup.latitude)}
                 <MapViewDirections
-                  origin={{longitude:directionsOrigin?.longitude,latitude:directionsOrigin?.latitude}}
-                  destination={{longitude:pickup?.longitude,latitude:pickup?.latitude}}
+                  origin={{
+                    longitude: directionsOrigin?.longitude,
+                    latitude: directionsOrigin?.latitude,
+                  }}
+                  destination={{
+                    longitude: pickup?.longitude,
+                    latitude: pickup?.latitude,
+                  }}
                   apikey={GOOGLE_API_KEY}
                   strokeWidth={5}
                   strokeColor={COLOR.blue}
@@ -421,85 +590,94 @@ const MapViewRequest = ({ route, navigation }) => {
 
             {directionsOrigin && dropoff && rideStep === 1 && (
               <>
-                {hasStops ? (
-                  // 🟢 MULTI-STOP ROUTE
-                  (() => {
-                    const routePoints = [
-                      origin,
-                      ...item.data.stops.map(stop => ({
-                        latitude: stop.Latitude,
-                        longitude: stop.Longitude,
-                      })),
-                      dropoff,
-                    ];
+                {hasStops
+                  ? // 🟢 MULTI-STOP ROUTE
+                    (() => {
+                      const routePoints = [
+                        origin,
+                        ...item.data.stops.map(stop => ({
+                          latitude: stop.Latitude,
+                          longitude: stop.Longitude,
+                        })),
+                        dropoff,
+                      ];
 
-                    return routePoints.map((point, index) => {
-                      if (index === routePoints.length - 1) return null;
+                      return routePoints.map((point, index) => {
+                        if (index === routePoints.length - 1) return null;
 
-                      return (
-                        <MapViewDirections
-                          key={`route-${index}`}
-                          origin={routePoints[index]}
-                          destination={routePoints[index + 1]}
-                          apikey={GOOGLE_API_KEY}
-                          strokeWidth={5}
-                          strokeColor={COLOR.blue}
-                          mode="DRIVING"
-                          lineCap="round"
-                          lineJoin="round"
-                          precision="high"
-                          onReady={result => {
-                            if (!directionsReady && index === 0) {
-                              mapRef.current?.fitToCoordinates(
-                                result.coordinates,
-                                {
-                                  edgePadding: {
-                                    top: 80,
-                                    right: 80,
-                                    bottom: 80,
-                                    left: 80,
+                        return (
+                          <MapViewDirections
+                            key={`route-${index}`}
+                            origin={routePoints[index]}
+                            destination={routePoints[index + 1]}
+                            apikey={GOOGLE_API_KEY}
+                            strokeWidth={5}
+                            strokeColor={COLOR.blue}
+                            mode="DRIVING"
+                            lineCap="round"
+                            lineJoin="round"
+                            precision="high"
+                            onReady={result => {
+                              if (!directionsReady && index === 0) {
+                                mapRef.current?.fitToCoordinates(
+                                  result.coordinates,
+                                  {
+                                    edgePadding: {
+                                      top: 80,
+                                      right: 80,
+                                      bottom: 80,
+                                      left: 80,
+                                    },
+                                    animated: true,
                                   },
-                                  animated: true,
+                                );
+                                setDirectionsReady(true);
+                              }
+                            }}
+                          />
+                        );
+                      });
+                    })()
+                  : // 🔵 NO STOPS → DIRECT ROUTE
+                    // {console.console.log('====================================');
+                    (console.log('This is my Driver::::::::::::::::', dropoff),
+                    (
+                      // console.log('====================================');}
+                      <MapViewDirections
+                        origin={{
+                          longitude: origin.longitude,
+                          latitude: origin.latitude,
+                        }}
+                        destination={{
+                          longitude: dropoff?.longitude,
+                          latitude: dropoff?.latitude,
+                        }}
+                        apikey={GOOGLE_API_KEY}
+                        strokeWidth={5}
+                        strokeColor={COLOR.blue}
+                        mode="DRIVING"
+                        lineCap="round"
+                        lineJoin="round"
+                        precision="high"
+                        onReady={result => {
+                          if (!directionsReady) {
+                            mapRef.current?.fitToCoordinates(
+                              result.coordinates,
+                              {
+                                edgePadding: {
+                                  top: 80,
+                                  right: 80,
+                                  bottom: 80,
+                                  left: 80,
                                 },
-                              );
-                              setDirectionsReady(true);
-                            }
-                          }}
-                        />
-                      );
-                    });
-                  })()
-                ) : (
-                  // 🔵 NO STOPS → DIRECT ROUTE
-                  // {console.console.log('====================================');
-                  console.log('This is my Driver::::::::::::::::',dropoff),
-                  // console.log('====================================');}
-                  <MapViewDirections
-                    origin={{longitude:origin.longitude,latitude:origin.latitude}}
-                    destination={{longitude:dropoff?.longitude,latitude:dropoff?.latitude}}
-                    apikey={GOOGLE_API_KEY}
-                    strokeWidth={5}
-                    strokeColor={COLOR.blue}
-                    mode="DRIVING"
-                    lineCap="round"
-                    lineJoin="round"
-                    precision="high"
-                    onReady={result => {
-                      if (!directionsReady) {
-                        mapRef.current?.fitToCoordinates(result.coordinates, {
-                          edgePadding: {
-                            top: 80,
-                            right: 80,
-                            bottom: 80,
-                            left: 80,
-                          },
-                          animated: true,
-                        });
-                        setDirectionsReady(true);
-                      }
-                    }}
-                  />
-                )}
+                                animated: true,
+                              },
+                            );
+                            setDirectionsReady(true);
+                          }
+                        }}
+                      />
+                    ))}
 
                 {/* 🚗 Moving Marker */}
                 <Marker.Animated
@@ -783,7 +961,11 @@ const MapViewRequest = ({ route, navigation }) => {
                     )}
                   </View>
                   <View style={{ gap: spacing?.hp21 }}>
-                    <TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleConnect();
+                      }}
+                    >
                       <Call></Call>
                     </TouchableOpacity>
                     <TouchableOpacity

@@ -43,7 +43,8 @@ const ReasonModal = ({
         if (result?.success) {
           dispatch(setBids([]));
           setShowOther(false);
-          navigation?.goBack();
+          setReasonModal(false);
+          navigation?.navigate('Home');
         }
       });
     }

@@ -15,8 +15,6 @@ import { fontSize, spacing } from '../../../../utils/scaling';
 import { COLOR } from '../../../../utils/color';
 import { WEIGHT } from '../../../../utils/weight';
 import Close from '../../../../assets/icons/close.svg';
-import RatingStar from '../../../../assets/icons/rating-star.svg';
-import Route from '../../../../assets/icons/route.svg';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useDriverBiddingDetail } from '../../../../api/useDriverBiddingDetail';
 import { useDispatch, useSelector } from 'react-redux';
@@ -30,8 +28,8 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
   const [showTimeField, setShowTimeField] = useState(false);
   const { driverBiddingDetails, error, loading } = useDriverBiddingDetail();
   const isFocused = useIsFocused();
-  const [location, setLocation] = useState(null);
-  const BIDS = useSelector(state => state?.bids);
+  const [location, setLocation] = useState<any>(null);
+  const BIDS = useSelector((state:any) => state?.bids);
   const dispatch = useDispatch();
   function timeAgo(timestamp: any) {
     const past: any = new Date(timestamp);
@@ -105,7 +103,7 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
     if (!hasPermission) return;
 
     Geolocation.getCurrentPosition(
-      position => {
+      (position:any) => {
         setLocation(position);
       },
       error => {
@@ -125,13 +123,13 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
     }
     if (item.type == 'RIDE_REQUEST_CANCELLED') {
       setBidModal(false);
-      dispatch(setBids(BIDS.filter(b => b.jobId !== item?.data?.jobId)));
+      dispatch(setBids(BIDS.filter((b:any) => b.jobId !== item?.data?.jobId)));
     }
   }, [item]);
   // const [showTimeField, setShowTimeField] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedTime, setSelectedTime] = useState<any>(null);
   const [offerField, setOfferField] = useState(false);
-  const [offer, setOffer] = useState(null);
+  const [offer, setOffer] = useState<any>(null);
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
   return (
@@ -426,7 +424,7 @@ const BidModal = ({ navigation, item, bidModal, setBidModal }: any) => {
                                 {item?.data?.pickup?.address}
                               </Text>
                             </View>
-                            {item?.data?.stops?.map(stop => {
+                            {item?.data?.stops?.map((stop:any) => {
                               console.log('This is a stop:::::::', stop);
                               return (
                                 <View
