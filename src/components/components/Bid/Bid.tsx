@@ -110,7 +110,6 @@ const Bid = ({ navigation, formatTime, item }: any) => {
   const boxRef = useRef(null);
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
-  console.log('I got it:::::',item);
   return (
     <>
       <MediaModal

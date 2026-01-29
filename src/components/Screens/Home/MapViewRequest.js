@@ -28,9 +28,11 @@ import { useCompleteRide } from '../../../api/useCompleteRide';
 import { GOOGLE_API_KEY } from '../../../utils/keys';
 import { useCallConnectionInfo } from '../../../api/useCallConnectionInfo';
 import SignalRService from '../../../service/SignalRService';
-import RNCallKeep from 'react-native-callkeep';
+import RNCallKeep, { CONSTANTS } from 'react-native-callkeep';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
+import { useIsFocused } from '@react-navigation/native';
 const { height, width } = Dimensions.get('window');
 
 const MapViewRequest = ({ route, navigation }) => {
@@ -40,6 +42,7 @@ const MapViewRequest = ({ route, navigation }) => {
   const TOKEN = useSelector(state => state?.token);
   const BIDS = useSelector(state => state?.bids);
   const PROFILE = useSelector(state => state?.user);
+  const CALL = useSelector(state => state);
   const socketRef = useRef(null);
   const mapRef = useRef(null);
   const watchId = useRef(null);
@@ -52,9 +55,14 @@ const MapViewRequest = ({ route, navigation }) => {
   const { getCallConnection } = useCallConnectionInfo();
   const [callData, setCallData] = useState(null);
   const [connected, setConnected] = useState(false);
-  const callUUID = uuidv4();
   const [callConnected, setCallConnected] = useState(false);
   const callConnectedRef = useRef(callConnected);
+  const [incomingCall, setIncomingCall] = useState(false);
+  const [isCalling, setIsCalling] = useState(false);
+  const isFocused = useIsFocused();
+
+  const callUUIDRef = useRef(uuidv4()); // stable UUID
+
   const fallbackRegion = pickup
     ? {
         latitude: pickup?.latitude,
@@ -351,30 +359,18 @@ const MapViewRequest = ({ route, navigation }) => {
       navigation.navigate('Home');
     }
   }, [BIDS]);
-  console.log(
-    'THESE ARE BIDS',
-    '::::::::',
-    route?.params?.bidDetails?.data?.customer?.Id,
-  );
-  useEffect(() => {
-    callConnectedRef.current = callConnected;
-  }, [callConnected]);
-  useEffect(() => {
+
+
+ useEffect(() => {
     const connectCall = async () => {
       const connectionInfo = await getCallConnection(TOKEN);
-      console.log(
-        'CONNECTION:::::::::::::::::::::',
-        connectionInfo.hubUrl.split(':')[0] +
-          's:' +
-          connectionInfo.hubUrl.split(':')[1],
-      );
-      if (!connectionInfo || !connectionInfo?.hubUrl) return;
+      if (!connectionInfo || !connectionInfo.hubUrl) return;
 
       // Ensure hubUrl is always a string
       const hubUrl =
-        typeof connectionInfo.hubUrl === 'string'
-          ? connectionInfo.hubUrl
-          : connectionInfo.hubUrl.toString();
+        typeof connectionInfo?.hubUrl === 'string'
+          ? connectionInfo?.hubUrl
+          : connectionInfo?.hubUrl?.toString();
 
       // Start the SignalR connection
       await SignalRService.startConnection(
@@ -396,120 +392,42 @@ const MapViewRequest = ({ route, navigation }) => {
             timestamp: new Date().toISOString(),
           },
         );
-        // Optionally, remove previous listeners (not needed for outgoing only)
+        await SignalRService.sendCallStatus(
+          route?.params?.bidDetails?.data?.customer?.Id,
+          'calling',
+          'calling'
+        );
+        // if(Platform.OS='ios'){
+          navigation.navigate('OutgoingCallScreen',{driverId:route?.params?.bidDetails?.data?.customer?.Id});
+        // }else{
+        //   RNCallKeep.startCall(callUUIDRef.current,'User','123456');
+        // }
       } catch (err) {
         console.error('Error connecting to SignalR:', err);
       }
     }
   };
-  const options = {
-    ios: {
-      appName: 'My app name',
-    },
-    android: {
-      alertTitle: 'Permissions required',
-      alertDescription: 'This application needs to access your phone accounts',
-      cancelButton: 'Cancel',
-      okButton: 'ok',
-      imageName: 'phone_account_icon',
-      additionalPermissions: [],
-      // Required to get audio in background when using Android 11
-      foregroundService: {
-        channelId: 'com.company.my',
-        channelName: 'Foreground service for my app',
-        notificationTitle: 'My app is running on background',
-        notificationIcon: 'Path to the resource icon of the notification',
-      },
-    },
-  };
-  useEffect(() => {
-    RNCallKeep.setup(options);
-  }, []);
-  useEffect(() => {
-    const handleAnswerCall = async ({ callUUID }) => {
-      console.log('Call ACCEPTED:', callUUID);
+useEffect(() => {
+  const customerId = route?.params?.bidDetails?.data?.customer?.Id;
 
+  if (customerId) {
+    const saveCustomerId = async () => {
       try {
-        await SignalRService.sendCallStatus(
-          route?.params?.bidDetails?.data?.customer?.Id,
-          'acceptCall',
-          'acceptCall',
-        );
-      } catch (err) {
-        console.error('Error sending acceptCall to SignalR:', err);
+        await AsyncStorage.setItem('CUSTOMER_ID', String(customerId));
+      } catch (e) {
+        console.error('Failed to save CUSTOMER_ID', e);
       }
-
-      setCallConnected(true);
     };
 
-    RNCallKeep.addEventListener('answerCall', handleAnswerCall);
+    saveCustomerId();
+  }
+}, [route?.params?.bidDetails]);
 
-    return () => {
-      RNCallKeep.removeEventListener('answerCall', handleAnswerCall);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleIncomingCall = data => {
-      console.log('Incoming call:', data);
-      setCallData(data);
-    };
-    SignalRService.addCallListener(handleIncomingCall);
-    // Cleanup when component unmounts
-    return () => {
-      SignalRService.removeCallListener(handleIncomingCall);
-    };
-  }, []);
-  useEffect(() => {
-    const handleEndCall = async ({ callUUID }) => {
-      console.log('Call ended or rejected:', callUUID);
-      console.log('Call connected state:', callConnectedRef.current);
-
-      try {
-        if (callConnectedRef.current) {
-          await SignalRService.sendCallStatus(
-            route?.params?.bidDetails?.data?.customer?.Id,
-            'endCall',
-            'endCall',
-          );
-        } else {
-          await SignalRService.sendCallStatus(
-            route?.params?.bidDetails?.data?.customer?.Id,
-            'rejectCall',
-            'rejectCall',
-          );
-        }
-      } catch (err) {
-        console.error('Error sending end/reject call to SignalR:', err);
-      }
-
-      // Cleanup call data
-      setCallData(null);
-      setCallConnected(false);
-    };
-
-    RNCallKeep.addEventListener('endCall', handleEndCall);
-
-    return () => {
-      RNCallKeep.removeEventListener('endCall', handleEndCall);
-    };
-  }, []);
-  useEffect(() => {
-    if (callData != null) {
-      RNCallKeep.displayIncomingCall(
-        callUUID,
-        callData?.phoneNumber || 'Unknown',
-        callData?.callerName || 'Incoming Call',
-        'generic',
-        false,
-      );
-    }
-  }, [callData]);
 
   const hasStops = item?.data?.stops && item.data.stops.length > 0;
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
-  console.log('HIIIIII This is my Call Data', connected);
+  console.log('HIIIIII This is my Call Data', CALL);
   return (
     <>
       <ReviewDetailsModal

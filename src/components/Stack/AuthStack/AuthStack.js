@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import OTP from '../../../components/Screens/Auth/OTP';
 import Complete from '../../../components/Screens/Auth/Complete';
 import BottomTab from '../../TabNavigator/BottomTab';
+import OutgoingCallScreen from '../../../components/components/CallKit/OutgoingCallScreen';
 const Stack = createNativeStackNavigator();
 const AuthStack = () => {
   return (
@@ -30,6 +31,13 @@ const AuthStack = () => {
       <Stack.Screen
         name="Complete"
         component={Complete}
+        options={{
+          headerShown: false,
+        }}
+      ></Stack.Screen>
+      <Stack.Screen
+        name="OutgoingCallScreen"
+        component={OutgoingCallScreen}
         options={{
           headerShown: false,
         }}

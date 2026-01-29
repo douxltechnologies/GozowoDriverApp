@@ -156,7 +156,44 @@ const Home = ({ navigation }: any) => {
   //     }
   //   };
   // }, []);
-  console.log(PROFILE);
+const tempBidRef = useRef<any>(null);
+const [finalBids, setFinalBids] = useState<any[]>([]);
+
+// Handle incoming bid ONE BY ONE
+const onBidReceived = (newBid: any) => {
+  if (!newBid) return;
+
+  // First bid
+  if (!tempBidRef.current) {
+    tempBidRef.current = newBid;
+    setFinalBids([newBid]);
+    return;
+  }
+
+  // Match by jobId
+  if (newBid?.data?.jobId === tempBidRef.current?.data?.jobId) {
+    tempBidRef.current = newBid;
+
+    setFinalBids(prev =>
+      prev.map((bid, index) =>
+        index === prev.length - 1 ? newBid : bid
+      ),
+    );
+  } else {
+    tempBidRef.current = newBid;
+    setFinalBids(prev => [...prev, newBid]);
+  }
+};
+
+// Whenever redux BIDS updates
+useEffect(() => {
+  if (BIDS) {
+    onBidReceived(BIDS);
+    console.log(BIDS);
+  }
+}, [BIDS]);
+
+
   return (
     <FlatList
       data={BIDS || []}

@@ -1,11 +1,21 @@
-import { SET_BIDS, SET_JOB_DETAILS, SET_MESSAGE, SET_TOKEN, SET_USER_PROFILE } from './actions';
+import {
+  SET_BIDS,
+  SET_JOB_DETAILS,
+  SET_MESSAGE,
+  SET_TOKEN,
+  SET_USER_PROFILE,
+  SET_CONNECTED_CALL,
+  SET_STATUS,
+} from './actions';
 
 const initialState = {
   token: null,
   user: {},
   jobDetails: {},
-  message:{},
-  bids:[],
+  message: {},
+  bids: [],
+  status: null,
+  call_connected: null,
 };
 
 const reducer = (state = initialState, action) => {
@@ -20,6 +30,10 @@ const reducer = (state = initialState, action) => {
       return { ...state, message: action.payload }; // ✅ Fixed line
     case SET_BIDS:
       return { ...state, bids: action.payload }; // ✅ Fixed line
+    case SET_STATUS:
+      return { ...state, status: action.payload }; // ✅ Fixed line
+    case SET_CONNECTED_CALL:
+      return { ...state, call_connected: action.payload }; // ✅ Fixed line
     default:
       return state;
   }
