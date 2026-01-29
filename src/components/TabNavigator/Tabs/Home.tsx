@@ -29,22 +29,22 @@ const Home = ({ navigation }: any) => {
       );
 
       socketRef.current.onopen = () => {
-      wsWatchId = Geolocation.watchPosition(
+        wsWatchId = Geolocation.watchPosition(
           position => {
-            console.log('This is position:::::::::::::::::::::::',position);
-         if (socketRef.current?.readyState === WebSocket.OPEN) {
+            console.log('This is position:::::::::::::::::::::::', position);
+            if (socketRef.current?.readyState === WebSocket.OPEN) {
               socketRef.current.send(
                 JSON.stringify({
                   type: 'DRIVER_LOCATION',
-                  name:PROFILE?.name,
-                  image:PROFILE?.imageUrl,
-                  rating:PROFILE?.rating,
+                  name: PROFILE?.name,
+                  image: PROFILE?.imageUrl,
+                  rating: PROFILE?.rating,
                   // latitude: position.coords.latitude,
                   // longitude: position.coords.longitude,
                   // speed: position.coords.speed,
-                  latitude : 25.1935406,
-                  longitude : 55.2800032,
-                  speed : 10,
+                  latitude: 25.1935406,
+                  longitude: 55.2800032,
+                  speed: 10,
                 }),
               );
             }
@@ -58,7 +58,7 @@ const Home = ({ navigation }: any) => {
           },
         );
       };
-     
+
       socketRef.current.onmessage = (event: any) => {
         try {
           const msg = JSON.parse(event.data);
@@ -69,7 +69,7 @@ const Home = ({ navigation }: any) => {
         }
       };
 
-      socketRef.current.onerror = (e:any) => {
+      socketRef.current.onerror = (e: any) => {
         console.log('❌ WebSocket error', e.message);
       };
 
@@ -113,8 +113,8 @@ const Home = ({ navigation }: any) => {
   //       `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
   //     );
   //     socketRef.current.onopen = () => {
-        // wsWatchId = Geolocation.watchPosition(
-        //   position => {
+  // wsWatchId = Geolocation.watchPosition(
+  //   position => {
   //           if (socketRef.current?.readyState === WebSocket.OPEN) {
   //             socketRef.current.send(
   //               JSON.stringify({
@@ -130,17 +130,17 @@ const Home = ({ navigation }: any) => {
   //                 speed : 10,
   //               }),
   //             );
-      //       }
-      //   //   },
-      //   //   error => console.log('Location error:', error),
-      //   //   {
-      //   //     enableHighAccuracy: true,
-      //   //     distanceFilter: 10,
-      //   //     interval: 15000,
-      //   //     fastestInterval: 10000,
-      //   //   },
-      //   // );
-      // };
+  //       }
+  //   //   },
+  //   //   error => console.log('Location error:', error),
+  //   //   {
+  //   //     enableHighAccuracy: true,
+  //   //     distanceFilter: 10,
+  //   //     interval: 15000,
+  //   //     fastestInterval: 10000,
+  //   //   },
+  //   // );
+  // };
 
   //     socketRef.current.onclose = () => console.log('WebSocket closed');
   //     socketRef.current.onerror = (e: any) => console.log('WebSocket error', e);
@@ -156,48 +156,40 @@ const Home = ({ navigation }: any) => {
   //     }
   //   };
   // }, []);
-const tempBidRef = useRef<any>(null);
-const [finalBids, setFinalBids] = useState<any[]>([]);
+  const [atemp, setATemp] = useState<any[]>([]);
 
-// Handle incoming bid ONE BY ONE
-const onBidReceived = (newBid: any) => {
-  if (!newBid) return;
+  useEffect(() => {
+    if (!Array.isArray(BIDS) || BIDS.length === 0) return;
 
-  // First bid
-  if (!tempBidRef.current) {
-    tempBidRef.current = newBid;
-    setFinalBids([newBid]);
-    return;
-  }
+    setATemp(prev => {
+      const map = new Map<string, any>();
 
-  // Match by jobId
-  if (newBid?.data?.jobId === tempBidRef.current?.data?.jobId) {
-    tempBidRef.current = newBid;
+      // 🔹 Step 1: existing jobs ko map mein daalo
+      prev.forEach(job => {
+        map.set(job.data.jobId, job);
+      });
 
-    setFinalBids(prev =>
-      prev.map((bid, index) =>
-        index === prev.length - 1 ? newBid : bid
-      ),
-    );
-  } else {
-    tempBidRef.current = newBid;
-    setFinalBids(prev => [...prev, newBid]);
-  }
-};
+      // 🔹 Step 2: Redux messages handle karo
+      BIDS.forEach(msg => {
+        // ✅ NEW JOB → add / replace
+        if (msg?.type === 'NEW_JOB' && msg?.data?.jobId) {
+          map.set(msg.data.jobId, msg);
+        }
 
-// Whenever redux BIDS updates
-useEffect(() => {
-  if (BIDS) {
-    onBidReceived(BIDS);
-    console.log(BIDS);
-  }
-}, [BIDS]);
+        // ❌ CANCEL JOB → remove
+        if (msg?.type === 'RIDE_REQUEST_CANCELLED' && msg?.JobId) {
+          map.delete(msg.JobId);
+        }
+      });
 
+      return Array.from(map.values());
+    });
+  }, [BIDS]);
 
   return (
     <FlatList
-      data={BIDS || []}
-      keyExtractor={(item, index) => index.toString()}
+      data={atemp}
+      keyExtractor={item => item.data.jobId}
       renderItem={({ item }) => (
         <Bid navigation={navigation} formatTime={formatTime} item={item} />
       )}

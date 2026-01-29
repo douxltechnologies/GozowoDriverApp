@@ -17,7 +17,7 @@ import AlertModal from '../../components/Modals/AlertModal/AlertModal';
 import { useGetProfile } from '../../../api/useGetProfile';
 import { useVerifyEmailOTP } from '../../../api/useVerifyEmailOTP';
 import messaging from '@react-native-firebase/messaging';
-import { DEVICE_CODE } from '../../../utils/keys';
+import { DEVICE_CODE, DEVICE_CODE_D, DEVICE_CODE_T } from '../../../utils/keys';
 
 const OTP = ({ navigation, route }) => {
   const dispatch = useDispatch();
@@ -74,7 +74,7 @@ const OTP = ({ navigation, route }) => {
 
     // You can pass additional param like isEmailVerification if API supports it
     await verifyOTP(
-      DEVICE_CODE,
+      Platform.OS=='ios'?DEVICE_CODE_D:DEVICE_CODE_T,
       otp,
       deviceId,
       fcmToken,
