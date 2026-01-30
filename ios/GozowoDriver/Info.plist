@@ -44,8 +44,8 @@
 		<key>LocationUsage</key>
 		<string>We need your precise location to provide better services</string>
 	</dict>
-	 <key>NSMicrophoneUsageDescription</key>
-    <string>We need access to the microphone to allow you to record audio for your orders and communicate with customers.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to the microphone to allow you to record audio for your orders and communicate with customers.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to show your current position</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -66,5 +66,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>EvilIcons.ttf</string>
+		<string>FontAwesome6_Brands.ttf</string>
+		<string>FontAwesome6_Regular.ttf</string>
+		<string>FontAwesome6_Solid.ttf</string>
+		<string>Ionicons.ttf</string>
+	</array>
 </dict>
 </plist>

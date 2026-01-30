@@ -9,7 +9,11 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import MapView, { Marker, AnimatedRegion } from 'react-native-maps';
+import MapView, {
+  Marker,
+  AnimatedRegion,
+  PROVIDER_GOOGLE,
+} from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import Geolocation from '@react-native-community/geolocation';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -33,6 +37,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { useIsFocused } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const { height, width } = Dimensions.get('window');
 
 const MapViewRequest = ({ route, navigation }) => {
@@ -50,8 +55,16 @@ const MapViewRequest = ({ route, navigation }) => {
   const [showReview, setShowReview] = useState(false);
   const item = route?.params?.bidDetails;
   const { completeRide, loading, error } = useCompleteRide();
-  const pickup = route?.params?.bidDetails?.data?.pickup;
-  const dropoff = route?.params?.bidDetails?.data?.dropoff;
+  const pickup = React.useMemo(
+    () => route?.params?.bidDetails?.data?.pickup,
+    [route?.params?.bidDetails?.data?.pickup],
+  );
+
+  const dropoff = React.useMemo(
+    () => route?.params?.bidDetails?.data?.dropoff,
+    [route?.params?.bidDetails?.data?.dropoff],
+  );
+
   const { getCallConnection } = useCallConnectionInfo();
   const [callData, setCallData] = useState(null);
   const [connected, setConnected] = useState(false);
@@ -60,6 +73,7 @@ const MapViewRequest = ({ route, navigation }) => {
   const [incomingCall, setIncomingCall] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
   const isFocused = useIsFocused();
+  const [mapReady, setMapReady] = useState(false);
 
   const callUUIDRef = useRef(uuidv4()); // stable UUID
 
@@ -142,7 +156,7 @@ const MapViewRequest = ({ route, navigation }) => {
     } else if (rideStep === 1 && dropoff) {
       setDirectionsOrigin(pickup);
     }
-  }, [rideStep, origin, pickup, dropoff]);
+  }, [rideStep, origin, pickup, dropoff, fallbackRegion]);
 
   // Track location and heading
   useEffect(() => {
@@ -199,15 +213,19 @@ const MapViewRequest = ({ route, navigation }) => {
     return () => {
       if (watchId.current !== null) Geolocation.clearWatch(watchId.current);
     };
-  }, []);
+  }, [animatedOrigin]);
 
   const handleRecenter = () => {
-    if (mapRef.current && origin) {
-      mapRef.current.animateCamera(
-        { center: origin, zoom: 17, pitch: 45 },
-        { duration: 500 },
-      );
-    }
+    if (!mapReady || !origin) return;
+
+    mapRef.current.animateCamera(
+      {
+        center: origin,
+        zoom: 17,
+        pitch: 45,
+      },
+      { duration: 500 },
+    );
   };
 
   function timeAgo(timestamp) {
@@ -292,63 +310,77 @@ const MapViewRequest = ({ route, navigation }) => {
     socket.onerror = e => console.log('WebSocket error', e);
   };
   // WebSocket to send location updates
-  // useEffect(() => {
-  //   const connectWebSocket = async () => {
-  //     const granted = await requestPermission();
-  //     if (!granted) return;
-  //     socket = new WebSocket(
-  //       `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
-  //     );
-  //     socketRef.current = socket;
-  //     socket.onopen = () => {
-  //       wsWatchId = Geolocation.watchPosition(
-  //         position => {
-  //           if (socket?.readyState === WebSocket.OPEN) {
-  //             socket.send(
-  //               JSON.stringify({
-  //                 type: 'LOCATION_UPDATE',
-  //                 latitude: position.coords.latitude,
-  //                 longitude: position.coords.longitude,
-  //                 accuracy: position.coords.accuracy,
-  //                 speed: position.coords.speed,
-  //                 timestamp: Date.now(),
-  //               }),
-  //             );
-  //           }
-  //         },
-  //         error => console.log('Location error:', error),
-  //         {
-  //           enableHighAccuracy: true,
-  //           distanceFilter: 10,
-  //           interval: 15000,
-  //           fastestInterval: 10000,
-  //         },
-  //       );
-  //     };
+  useEffect(() => {
+    let localSocket = null;
 
-  //     socket.onmessage = event => {
-  //       const message = JSON.parse(event.data);
-  //       console.log('HI I am CANCEL', message);
-  //       if (message.type === 'RIDE_CANCELLED_BY_CUSTOMER') {
-  //         dispatch(setBids([]));
-  //         navigation.navigate('HomeStack');
-  //       }
-  //     };
+    const connectWebSocket = async () => {
+      const granted = await requestPermission();
+      if (!granted) return;
 
-  //     socket.onclose = () => console.log('WebSocket closed');
-  //     socket.onerror = e => console.log('WebSocket error', e);
-  //   };
+      localSocket = new WebSocket(
+        `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
+      );
 
-  //   connectWebSocket();
+      socketRef.current = localSocket;
 
-  //   return () => {
-  //     if (wsWatchId !== null) Geolocation.clearWatch(wsWatchId);
-  //     if (socketRef.current) {
-  //       socketRef.current.close();
-  //       socketRef.current = null;
-  //     }
-  //   };
-  // }, []);
+      localSocket.onopen = () => {
+        // ✅ Start GPS tracking AFTER socket opens
+        wsWatchId = Geolocation.watchPosition(
+          position => {
+            if (localSocket?.readyState === WebSocket.OPEN) {
+              localSocket.send(
+                JSON.stringify({
+                  type: 'LOCATION_UPDATE',
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                  accuracy: position.coords.accuracy,
+                  speed: position.coords.speed,
+                  timestamp: Date.now(),
+                }),
+              );
+            }
+          },
+          error => console.log('Location error:', error),
+          {
+            enableHighAccuracy: true,
+            distanceFilter: 10,
+            interval: 15000,
+            fastestInterval: 10000,
+          },
+        );
+      };
+
+      localSocket.onmessage = event => {
+        const message = JSON.parse(event.data);
+        console.log('HI I am CANCEL', message);
+
+        if (message.type === 'RIDE_CANCELLED_BY_CUSTOMER') {
+          dispatch(setBids([]));
+          navigation.navigate('HomeStack');
+        }
+      };
+
+      localSocket.onerror = e => console.log('WebSocket error', e);
+      localSocket.onclose = () => console.log('WebSocket closed');
+    };
+
+    connectWebSocket();
+
+    return () => {
+      // ✅ Clear GPS watcher
+      if (wsWatchId !== null) {
+        Geolocation.clearWatch(wsWatchId);
+        wsWatchId = null;
+      }
+
+      // ✅ Close socket
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (BIDS?.type == 'RIDE_CANCELLED_BY_CUSTOMER') {
       dispatch(setBids([]));
@@ -358,10 +390,38 @@ const MapViewRequest = ({ route, navigation }) => {
       dispatch(setBids([]));
       navigation.navigate('Home');
     }
-  }, [BIDS]);
+  }, [BIDS, dispatch, navigation]);
+  useEffect(() => {
+    if (!mapReady || !pickup) return;
+
+    mapRef.current.animateCamera(
+      {
+        center: pickup,
+        zoom: 0,
+      },
+      { duration: 1000 },
+    );
+  }, [mapReady, pickup]);
+
+  useEffect(() => {
+  if (!mapReady || !pickup || !origin) return;
+
+  mapRef.current.fitToCoordinates(
+    [pickup, origin],
+    {
+      edgePadding: {
+        top: 100,
+        right: 100,
+        bottom: 100,
+        left: 100,
+      },
+      animated: true,
+    }
+  );
+}, [mapReady, pickup, origin]);
 
 
- useEffect(() => {
+  useEffect(() => {
     const connectCall = async () => {
       const connectionInfo = await getCallConnection(TOKEN);
       if (!connectionInfo || !connectionInfo.hubUrl) return;
@@ -395,10 +455,12 @@ const MapViewRequest = ({ route, navigation }) => {
         await SignalRService.sendCallStatus(
           route?.params?.bidDetails?.data?.customer?.Id,
           'calling',
-          'calling'
+          'calling',
         );
         // if(Platform.OS='ios'){
-          navigation.navigate('OutgoingCallScreen',{driverId:route?.params?.bidDetails?.data?.customer?.Id});
+        navigation.navigate('OutgoingCallScreen', {
+          driverId: route?.params?.bidDetails?.data?.customer?.Id,
+        });
         // }else{
         //   RNCallKeep.startCall(callUUIDRef.current,'User','123456');
         // }
@@ -407,27 +469,26 @@ const MapViewRequest = ({ route, navigation }) => {
       }
     }
   };
-useEffect(() => {
-  const customerId = route?.params?.bidDetails?.data?.customer?.Id;
+  useEffect(() => {
+    const customerId = route?.params?.bidDetails?.data?.customer?.Id;
 
-  if (customerId) {
-    const saveCustomerId = async () => {
-      try {
-        await AsyncStorage.setItem('CUSTOMER_ID', String(customerId));
-      } catch (e) {
-        console.error('Failed to save CUSTOMER_ID', e);
-      }
-    };
+    if (customerId) {
+      const saveCustomerId = async () => {
+        try {
+          await AsyncStorage.setItem('CUSTOMER_ID', String(customerId));
+        } catch (e) {
+          console.error('Failed to save CUSTOMER_ID', e);
+        }
+      };
 
-    saveCustomerId();
-  }
-}, [route?.params?.bidDetails]);
-
+      saveCustomerId();
+    }
+  }, [route?.params?.bidDetails]);
 
   const hasStops = item?.data?.stops && item.data.stops.length > 0;
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
-  console.log('HIIIIII This is my Call Data', CALL);
+  console.log('HIIIIII This is my Call Data', animatedOrigin);
   return (
     <>
       <ReviewDetailsModal
@@ -442,17 +503,13 @@ useEffect(() => {
         setReasonModal={setReasonModal}
         reasonModal={reasonModal}
       ></ReasonModal>
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <SafeAreaView style={{ flex: 1, justifyContent: 'flex-end' }}>
         <View style={{ flex: 1 }}>
           <MapView
             ref={mapRef}
-            style={StyleSheet.absoluteFill}
-            initialRegion={fallbackRegion}
-            showsUserLocation={false}
-            scrollEnabled
-            zoomEnabled
-            rotateEnabled
-            pitchEnabled
+            provider={PROVIDER_GOOGLE}
+            style={StyleSheet.absoluteFillObject}
+            onMapReady={() => setMapReady(true)}
           >
             {directionsOrigin && pickup && rideStep === 0 && (
               <>
@@ -473,20 +530,21 @@ useEffect(() => {
                   lineJoin="round"
                   precision="high"
                   mode="DRIVING"
-                  onReady={result => {
-                    if (!directionsReady) {
-                      mapRef.current?.fitToCoordinates(result.coordinates, {
-                        edgePadding: {
-                          top: 80,
-                          right: 80,
-                          bottom: 80,
-                          left: 80,
-                        },
-                        animated: true,
-                      });
-                      setDirectionsReady(true);
-                    }
-                  }}
+                  // onReady={result => {
+                  //   if (!mapReady || directionsReady) return;
+
+                  //   mapRef.current?.fitToCoordinates(result.coordinates, {
+                  //     edgePadding: {
+                  //       top: 80,
+                  //       right: 80,
+                  //       bottom: 80,
+                  //       left: 80,
+                  //     },
+                  //     animated: true,
+                  //   });
+
+                  //   setDirectionsReady(true);
+                  // }}
                 />
                 <Marker.Animated
                   coordinate={animatedOrigin}
@@ -506,7 +564,7 @@ useEffect(() => {
               </>
             )}
 
-            {directionsOrigin && dropoff && rideStep === 1 && (
+            {directionsOrigin && dropoff && rideStep > 0 && (
               <>
                 {hasStops
                   ? // 🟢 MULTI-STOP ROUTE
@@ -535,23 +593,23 @@ useEffect(() => {
                             lineCap="round"
                             lineJoin="round"
                             precision="high"
-                            onReady={result => {
-                              if (!directionsReady && index === 0) {
-                                mapRef.current?.fitToCoordinates(
-                                  result.coordinates,
-                                  {
-                                    edgePadding: {
-                                      top: 80,
-                                      right: 80,
-                                      bottom: 80,
-                                      left: 80,
-                                    },
-                                    animated: true,
-                                  },
-                                );
-                                setDirectionsReady(true);
-                              }
-                            }}
+                            // onReady={result => {
+                            //   if (!directionsReady && index === 0) {
+                            //     mapRef.current?.fitToCoordinates(
+                            //       result.coordinates,
+                            //       {
+                            //         edgePadding: {
+                            //           top: 80,
+                            //           right: 80,
+                            //           bottom: 80,
+                            //           left: 80,
+                            //         },
+                            //         animated: true,
+                            //       },
+                            //     );
+                            //     setDirectionsReady(true);
+                            //   }
+                            // }}
                           />
                         );
                       });
@@ -577,23 +635,23 @@ useEffect(() => {
                         lineCap="round"
                         lineJoin="round"
                         precision="high"
-                        onReady={result => {
-                          if (!directionsReady) {
-                            mapRef.current?.fitToCoordinates(
-                              result.coordinates,
-                              {
-                                edgePadding: {
-                                  top: 80,
-                                  right: 80,
-                                  bottom: 80,
-                                  left: 80,
-                                },
-                                animated: true,
-                              },
-                            );
-                            setDirectionsReady(true);
-                          }
-                        }}
+                        // onReady={result => {
+                        //   if (!directionsReady) {
+                        //     mapRef.current?.fitToCoordinates(
+                        //       result.coordinates,
+                        //       {
+                        //         edgePadding: {
+                        //           top: 80,
+                        //           right: 80,
+                        //           bottom: 80,
+                        //           left: 80,
+                        //         },
+                        //         animated: true,
+                        //       },
+                        //     );
+                        //     setDirectionsReady(true);
+                        //   }
+                        // }}
                       />
                     ))}
 
@@ -990,7 +1048,7 @@ useEffect(() => {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </>
   );
 };

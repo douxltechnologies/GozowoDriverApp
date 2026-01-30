@@ -177,7 +177,7 @@ console.log('TETS::::::::::::::::',paymentIntentData);
         sizes={['auto']}
         // backgroundColor={'transparent'}
         grabber={false}
-        style={{height:'50%'}}
+        // style={{height:'50%'}}
       >
         <View
           style={{

@@ -74,7 +74,7 @@ const OTP = ({ navigation, route }) => {
 
     // You can pass additional param like isEmailVerification if API supports it
     await verifyOTP(
-      Platform.OS=='ios'?DEVICE_CODE_D:DEVICE_CODE_T,
+      DEVICE_CODE,
       otp,
       deviceId,
       fcmToken,

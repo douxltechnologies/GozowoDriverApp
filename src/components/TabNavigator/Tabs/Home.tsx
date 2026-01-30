@@ -28,8 +28,8 @@ const Home = ({ navigation }: any) => {
         `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
       );
 
-      socketRef.current.onopen = () => {
-        wsWatchId = Geolocation.watchPosition(
+      socketRef.current.onopen = async () => {
+        wsWatchId = await Geolocation.watchPosition(
           position => {
             console.log('This is position:::::::::::::::::::::::', position);
             if (socketRef.current?.readyState === WebSocket.OPEN) {
