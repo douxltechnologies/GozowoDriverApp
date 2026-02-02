@@ -25,7 +25,7 @@ const Home = ({ navigation }: any) => {
 
     const connectWS = () => {
       socketRef.current = new WebSocket(
-        `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE.id}?token=${TOKEN}`,
+        `ws://${ENDPOINT}/api/WebSocket/ConnectWebhook/${PROFILE?.id}?token=${TOKEN}`,
       );
 
       socketRef.current.onopen = async () => {
@@ -131,15 +131,15 @@ const Home = ({ navigation }: any) => {
   //               }),
   //             );
   //       }
-  //   //   },
-  //   //   error => console.log('Location error:', error),
-  //   //   {
-  //   //     enableHighAccuracy: true,
-  //   //     distanceFilter: 10,
-  //   //     interval: 15000,
-  //   //     fastestInterval: 10000,
-  //   //   },
-  //   // );
+  //     },
+  //     error => console.log('Location error:', error),
+  //     {
+  //       enableHighAccuracy: true,
+  //       distanceFilter: 10,
+  //       interval: 15000,
+  //       fastestInterval: 10000,
+  //     },
+  //   );
   // };
 
   //     socketRef.current.onclose = () => console.log('WebSocket closed');
@@ -191,6 +191,7 @@ const Home = ({ navigation }: any) => {
       data={atemp}
       keyExtractor={item => item.data.jobId}
       renderItem={({ item }) => (
+        console.log(item,'::::::'),
         <Bid navigation={navigation} formatTime={formatTime} item={item} />
       )}
     />

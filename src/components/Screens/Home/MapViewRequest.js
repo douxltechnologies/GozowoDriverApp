@@ -156,7 +156,7 @@ const MapViewRequest = ({ route, navigation }) => {
     } else if (rideStep === 1 && dropoff) {
       setDirectionsOrigin(pickup);
     }
-  }, [rideStep, origin, pickup, dropoff, fallbackRegion]);
+  }, [rideStep]);
 
   // Track location and heading
   useEffect(() => {
@@ -420,7 +420,6 @@ const MapViewRequest = ({ route, navigation }) => {
   );
 }, [mapReady, pickup, origin]);
 
-
   useEffect(() => {
     const connectCall = async () => {
       const connectionInfo = await getCallConnection(TOKEN);
@@ -488,7 +487,7 @@ const MapViewRequest = ({ route, navigation }) => {
   const hasStops = item?.data?.stops && item.data.stops.length > 0;
   const stopsCount = item?.data?.stops?.length || 0;
   const totalStops = stopsCount + 2; // pickup + stops + dropoff
-  console.log('HIIIIII This is my Call Data', animatedOrigin);
+  console.log('HIIIIII This is my Call Data', dropoff);
   return (
     <>
       <ReviewDetailsModal
@@ -511,13 +510,13 @@ const MapViewRequest = ({ route, navigation }) => {
             style={StyleSheet.absoluteFillObject}
             onMapReady={() => setMapReady(true)}
           >
-            {directionsOrigin && pickup && rideStep === 0 && (
+            {origin && pickup && rideStep === 0 && (
               <>
                 {console.log('This is my Driver', pickup.latitude)}
                 <MapViewDirections
                   origin={{
-                    longitude: directionsOrigin?.longitude,
-                    latitude: directionsOrigin?.latitude,
+                    longitude: origin?.longitude,
+                    latitude: origin?.latitude,
                   }}
                   destination={{
                     longitude: pickup?.longitude,
@@ -530,21 +529,6 @@ const MapViewRequest = ({ route, navigation }) => {
                   lineJoin="round"
                   precision="high"
                   mode="DRIVING"
-                  // onReady={result => {
-                  //   if (!mapReady || directionsReady) return;
-
-                  //   mapRef.current?.fitToCoordinates(result.coordinates, {
-                  //     edgePadding: {
-                  //       top: 80,
-                  //       right: 80,
-                  //       bottom: 80,
-                  //       left: 80,
-                  //     },
-                  //     animated: true,
-                  //   });
-
-                  //   setDirectionsReady(true);
-                  // }}
                 />
                 <Marker.Animated
                   coordinate={animatedOrigin}
@@ -593,23 +577,6 @@ const MapViewRequest = ({ route, navigation }) => {
                             lineCap="round"
                             lineJoin="round"
                             precision="high"
-                            // onReady={result => {
-                            //   if (!directionsReady && index === 0) {
-                            //     mapRef.current?.fitToCoordinates(
-                            //       result.coordinates,
-                            //       {
-                            //         edgePadding: {
-                            //           top: 80,
-                            //           right: 80,
-                            //           bottom: 80,
-                            //           left: 80,
-                            //         },
-                            //         animated: true,
-                            //       },
-                            //     );
-                            //     setDirectionsReady(true);
-                            //   }
-                            // }}
                           />
                         );
                       });
@@ -635,23 +602,6 @@ const MapViewRequest = ({ route, navigation }) => {
                         lineCap="round"
                         lineJoin="round"
                         precision="high"
-                        // onReady={result => {
-                        //   if (!directionsReady) {
-                        //     mapRef.current?.fitToCoordinates(
-                        //       result.coordinates,
-                        //       {
-                        //         edgePadding: {
-                        //           top: 80,
-                        //           right: 80,
-                        //           bottom: 80,
-                        //           left: 80,
-                        //         },
-                        //         animated: true,
-                        //       },
-                        //     );
-                        //     setDirectionsReady(true);
-                        //   }
-                        // }}
                       />
                     ))}
 
@@ -1064,3 +1014,4 @@ const styles = StyleSheet.create({
 });
 
 export default MapViewRequest;
+

@@ -28,27 +28,39 @@ const MediaModal = ({ item, mediaModal, setMediaModal }) => {
   const [playbackDuration, setPlaybackDuration] = useState(0); // in seconds
 
   const onStartPlay = async () => {
-    if (!item?.data?.message) return;
+  if (!item?.data?.message) return;
 
-    try {
-      setIsPlaying(true);
-      await AudioRecorderPlayer.startPlayer(item?.data?.message);
+  try {
+    // Clean up before starting
+    await AudioRecorderPlayer.stopPlayer();
+    AudioRecorderPlayer.removePlayBackListener();
 
-      AudioRecorderPlayer.addPlayBackListener(e => {
-        setPlaybackPosition(e.currentPosition);
-        setPlaybackDuration(e.duration);
+    setIsPlaying(true);
 
-        if (e.currentPosition >= e.duration) {
-          AudioRecorderPlayer.stopPlayer();
-          setIsPlaying(false);
-          AudioRecorderPlayer.removePlayBackListener();
-          setPlaybackPosition(0);
-        }
-      });
-    } catch (err) {
-      console.log('Playback error:', err);
-    }
-  };
+    await AudioRecorderPlayer.startPlayer(item.data.message);
+
+    AudioRecorderPlayer.addPlayBackListener((e) => {
+      // Convert ms → seconds
+      const currentSec = Math.floor(e.currentPosition / 1000);
+      const durationSec = Math.floor(e.duration / 1000);
+
+      setPlaybackPosition(currentSec);
+      setPlaybackDuration(durationSec);
+
+      // Playback finished
+      if (e.currentPosition >= e.duration && e.duration > 0) {
+        AudioRecorderPlayer.stopPlayer();
+        AudioRecorderPlayer.removePlayBackListener();
+        setIsPlaying(false);
+        setPlaybackPosition(0);
+      }
+    });
+
+  } catch (err) {
+    console.log('Playback error:', err);
+    setIsPlaying(false);
+  }
+};
   const onStopPlay = async () => {
     try {
       await AudioRecorderPlayer.stopPlayer();
@@ -58,17 +70,12 @@ const MediaModal = ({ item, mediaModal, setMediaModal }) => {
       console.log('Stop playback error:', err);
     }
   };
-  const formatTime = millis => {
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+const formatTime = (seconds = 0) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
 
-    // Pad single digits with leading 0
-    const minutesStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
-    const secondsStr = seconds < 10 ? `0${seconds}` : `${seconds}`;
-
-    return `${minutesStr}:${secondsStr}`;
-  };
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+};
   return (
     <Modal
       transparent
@@ -310,11 +317,15 @@ const MediaModal = ({ item, mediaModal, setMediaModal }) => {
                         justifyContent: 'space-between',
                       }}
                     >
-                      <Text style={{ color: COLOR.black }}>
-                        {isPlaying
-                          ? formatTime(playbackDuration)
-                          : formatTime(playbackPosition)}
-                      </Text>
+                      {/* <Text style={{ color: COLOR.black }}>
+                        {formatTime(playbackPosition)}
+                      </Text> */}
+
+                      {isPlaying?<Text style={{ color: COLOR.black }}>
+                        {formatTime(playbackPosition)}
+                      </Text>:<Text style={{ color: COLOR.black }}>
+                        {formatTime(playbackDuration)}
+                      </Text>}
                     </View>
                   </View>
                 </View>

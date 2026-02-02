@@ -67,15 +67,20 @@ const PhoneVerification = ({ navigation, route }) => {
   //   }
 
   //   await phoneLogin(selectedCountry?.idd?.root + phoneNumber).then(result => {
+  //     console.log(result);
   //     if (result?.status == true) {
-  //       navigation.navigate('OTP');
+  //       setModalType('success');
+  //       setTitle('OTP Sent!');
+  //       setMessage('OTP sent to phone number');
+  //       setShowAlertModal(true);
+  //       navigation.navigate('OTP',{deviceCode:result?.code});
   //     }
   //   });
   //   // If valid → navigate to OTP screen
   // };
   // useEffect(() => {
   //   if (errorPhoneLogin) {
-  //       setModalType('error');
+  //     setModalType('error');
   //     setTitle(errorPhoneLogin.title);
   //     setMessage(errorPhoneLogin.message);
   //     setShowAlertModal(true);

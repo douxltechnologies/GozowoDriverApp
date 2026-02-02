@@ -74,6 +74,7 @@ const OTP = ({ navigation, route }) => {
 
     // You can pass additional param like isEmailVerification if API supports it
     await verifyOTP(
+      // route?.params?.deviceCode,   //real time scenerio
       DEVICE_CODE,
       otp,
       deviceId,
